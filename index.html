@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8" />
+  <title>AR City</title>
+  <meta name="viewport" content="width=device-width,user-scalable=no,minimum-scale=1.0,maximum-scale=1.0" />
+  <script src="https://aframe.io/releases/1.0.1/aframe.min.js"></script>
+  <script src="https://rawgit.com/jeromeetienne/AR.js/master/aframe/build/aframe-ar.min.js"></script>
+  <script>
+    AFRAME.registerComponent("atoms",{
+      init:async function(){
+        var compounds=await this.getCompounds()
+        var barcodes=Object.keys(compounds)
+        barcodes.map(barcode=>{
+          var element=compounds[barcode]
+          this.createAtoms(element)
+        })
+      },
+      getCompounds:function(){
+        return fetch("js/compoundList.json")
+          .then(res=>res.json())
+          .then(data=>data)
+      },
+      getElementColors:function(){
+        return fetch("js/elementColors.json")
+          .then(res=>res.json())
+          .then(data=>data)
+      },
+      createAtoms:async function(element){
+        var elementName=element.element_name
+        var barcodeValue=element.barcode_value
+        var numOfElectron=element.number_of_electron
+        var colors=await this.getElementColors()
+        var scene=document.querySelector("a-scene")
+        var marker=document.createElement("a-marker")
+        marker.setAttribute("id",`marker-${barcodeValue}`)
+        marker.setAttribute("type","barcode")
+        marker.setAttribute("element_name",elementName)
+        marker.setAttribute("value",barcodeValue)
+        scene.appendChild(marker)
+        var atom=document.createElement("a-entity")
+        atom.setAttribute("id",`${elementName}-${barcodeValue}`)
+        marker.appendChild(atom)
+        pink=document.createElement("a-box")
+        pink.setAttribute("color","#f88")
+        pink.setAttribute("height",0.8)
+        pink.setAttribute("width",0.3)
+        pink.setAttribute("depth",0.8)
+        pink.setAttribute("position","-4 0 0")
+        atom.appendChild(pink)
+        blue=document.createElement("a-box")
+        blue.setAttribute("color","#00f")
+        blue.setAttribute("height",0.8)
+        blue.setAttribute("width",0.3)
+        blue.setAttribute("depth",1.6)
+        blue.setAttribute("position","-3.5 0 -0.4")
+        atom.appendChild(blue)
+        blue2=document.createElement("a-box")
+        blue2.setAttribute("color","#00f")
+        blue2.setAttribute("height",0.8)
+        blue2.setAttribute("width",0.3)
+        blue2.setAttribute("depth",1.6)
+        blue2.setAttribute("position","-2.5 0 -0.4")
+        atom.appendChild(blue2)
+        blue3=document.createElement("a-box")
+        blue3.setAttribute("color","#00f")
+        blue3.setAttribute("height",0.8)
+        blue3.setAttribute("width",1)
+        blue3.setAttribute("depth",0.2)
+        blue3.setAttribute("position","-3 0 -0.9")
+        atom.appendChild(blue3)
+        black=document.createElement("a-box")
+        black.setAttribute("color","#000")
+        black.setAttribute("height",0.8)
+        black.setAttribute("width",0.3)
+        black.setAttribute("depth",1)
+        black.setAttribute("position","-3 0 -0.1")
+        atom.appendChild(black)
+        yellow=document.createElement("a-box")
+        yellow.setAttribute("color","#ff0")
+        yellow.setAttribute("height",0.8)
+        yellow.setAttribute("width",0.5)
+        yellow.setAttribute("depth",0.8)
+        yellow.setAttribute("position","-2 0 0")
+        atom.appendChild(yellow)
+        orange=document.createElement("a-box")
+        orange.setAttribute("color","#f70")
+        orange.setAttribute("height",0.8)
+        orange.setAttribute("width",0.2)
+        orange.setAttribute("depth",1.6)
+        orange.setAttribute("position","-1.65 0 -0.4")
+        atom.appendChild(orange)
+        green=document.createElement("a-box")
+        green.setAttribute("color","#0f0")
+        green.setAttribute("height",0.8)
+        green.setAttribute("width",0.2)
+        green.setAttribute("depth",1.6)
+        green.setAttribute("position","-1.2 0 -0.4")
+        atom.appendChild(green)
+        purple=document.createElement("a-box")
+        purple.setAttribute("color","#f0f")
+        purple.setAttribute("height",0.8)
+        purple.setAttribute("width",0.2)
+        purple.setAttribute("depth",1.6)
+        purple.setAttribute("position","-0.9 0 -0.4")
+        atom.appendChild(purple)
+        red=document.createElement("a-box")
+        red.setAttribute("color","#f00")
+        red.setAttribute("height",0.8)
+        red.setAttribute("width",0.3)
+        red.setAttribute("depth",0.8)
+        red.setAttribute("position","-0.6 0 0")
+        atom.appendChild(red)
+        building=document.createElement("a-box")
+        building.setAttribute("color","#777")
+        building.setAttribute("height",0.8)
+        building.setAttribute("width",0.5)
+        building.setAttribute("depth",0.3)
+        building.setAttribute("position","-0.18 0 0.25")
+        atom.appendChild(building)
+      }
+    })
+    var A=["H","Li","Na","K"]
+    var B=["F","Cl","Br","I"]
+    var elementsArray=[]
+
+    AFRAME.registerComponent("markerhandler",{
+      init:async function(){
+        var compounds=await this.getCompounds()
+
+        this.el.addEventListener("markerFound",()=>{
+          var elementName=this.el.getAttribute("element_name")
+          var barcodeValue=this.el.getAttribute("value")
+          elementsArray.push({ element_name:elementName,barcode_value:barcodeValue })
+
+          // Changing Compound Visiblity
+          compounds[barcodeValue]["compounds"].map(item=>{
+            var compound=document.querySelector(`#${item.compound_name}-${barcodeValue}`)
+            compound.setAttribute("visible",false)
+          });
+
+          // Changing Atom Visiblity
+          var atom=document.querySelector(`#${elementName}-${barcodeValue}`)
+          atom.setAttribute("visible",true)
+        });
+
+        this.el.addEventListener("markerLost",()=>{
+          var elementName=this.el.getAttribute("element_name")
+          var index=elementsArray.findIndex(x=>x.element_name==elementName)
+          if(index>-1){
+            elementsArray.splice(index,1)
+          }
+        });
+      },
+
+      tick:function(){
+        if(elementsArray.length>1){
+          var message=document.querySelector("#message-text")
+          var length=elementsArray.length
+          var distance=null
+          var compound=this.getCompound()
+          if(length==2){
+            var marker1=document.querySelector(`#marker-${elementsArray[0].barcode_value}`)
+            var marker2=document.querySelector(`#marker-${elementsArray[1].barcode_value}`)
+            distance=this.getDistance(marker1,marker2)
+            if(distance<1.25){
+              if(compound!=undefined){
+                this.showCompound(compound)
+              }else{
+                message.setAttribute("visible",true)
+              }
+            }else{
+              message.setAttribute("visible",false)
+            }
+          }
+        }
+      },
+      //Calculate distance between two position markers
+      getDistance:function(elA,elB){
+        return elA.object3D.position.distanceTo(elB.object3D.position)
+      },
+      
+      getCompound:function(){
+        for(var el of elementsArray){
+          if(A.includes(el.element_name)){
+            var compound=el.element_name
+            for(var i of elementsArray){
+              if(B.includes(i.element_name)){
+                compound+=i.element_name
+                return{name:compound,value:e.barcode_value}
+              }
+            }
+          }
+        }
+      },
+      showCompound:function(compound){
+        //Hide elements
+        elementsArray.map(item=>{
+          var el=document.querySelector(`#${item.element_name}-${item.barcode_value}`)
+          el.setAttribute("visible",false)
+        })
+        //Show Compound
+        var compound=document.querySelector(`#${compound.name}-${compound.value}`)
+        compound.setAttribute("visible",true)
+      },
+      getCompounds:function(){
+        // NOTE:Use ngrok server to get json values
+        return fetch("js/compoundList.json").then(res=>res.json()).then(data=>data)
+      },
+    })
+  </script>
+</head>
+<body style="margin:0px;overflow:hidden;">
+  <a-scene id="main-scene" vr-mode-ui="enabled:false"arjs="sourceType:webcam;debugUIEnabled:false;detectionMode:mono_and_matrix;matrixCodeType:3x3;" embedded atoms>
+    <a-entity id="camera" camera></a-entity>
+  </a-scene>
+</body>
+</html>
